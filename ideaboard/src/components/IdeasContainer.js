@@ -9,7 +9,8 @@ class IdeasContainer extends Component {
     super(props)
     this.state = {
       ideas: [],
-      editingIdeaId: null
+      editingIdeaId: null,
+      notification: ''
     }
   }
 
@@ -38,7 +39,26 @@ class IdeasContainer extends Component {
     const ideas = update(this.state.ideas, {
       [ideaIndex]: { $set: idea }
     })
-    this.setState({ideas: ideas})
+    this.setState({ideas: ideas, notification: 'All changes saved'})
+  }
+
+  resetNotification = () => {
+    this.setState({notification: ''})
+  }
+
+  enableEditing = (id) => {
+    this.setState({editingIdeaId: id},
+      () => { this.title.focus() })
+  }
+
+  deleteIdea = (id) => {
+    axios.delete(`http://localhost:3001/api/v1/ideas/${id}`)
+    .then(response => {
+      const ideaIndex = this.state.ideas.findIndex(x => x.id === id)
+      const ideas = update(this.state.ideas, { $splice: [[ideaIndex, 1]]})
+      this.setState({ideas: ideas})
+    })
+    .catch(error => console.log(error))
   }
 
   componentDidMount() {
@@ -57,12 +77,17 @@ class IdeasContainer extends Component {
         onClick={this.addNewIdea}>
         New Idea
       </button>
+      <span className="notification">
+        {this.state.notification}
+      </span>
       {this.state.ideas.map((idea) => {
       if(this.state.editingIdeaId === idea.id) {
         return(<IdeaForm idea={idea} key={idea.id}
-                updateIdea={this.updateIdea} />)
+                updateIdea={this.updateIdea}
+                titleRef= {input => this.title = input}
+                resetNotification={this.resetNotification} />)
       } else {
-        return (<Idea idea={idea} key={idea.id} />)
+        return (<Idea idea={idea} key={idea.id} onClick={this.enableEditing} onDelete={this.deleteIdea} />)
     }
   })}
       </div>
